@@ -43,7 +43,7 @@ from distutils.command.build import build
 from distutils.command.build_ext import build_ext
 import distutils.sysconfig
 import os, sys, re
-import struct
+import struct, platform
 
 if sys.version[0:1] == '1':
     raise RuntimeError ("The Python Cryptography Toolkit requires "
@@ -143,8 +143,13 @@ class PCTBuildExt (build_ext):
         else:
             ac = self.__read_autoconf("src/config.h")
 
-        # Detect libgmp or libmpir and don't build _fastmath if both are missing.
-        if ac.get("HAVE_LIBGMP"):
+        # Detect libgmp or libmpir and don't build _fastmath if both are missing, or if this is PyPy
+        if platform.python_implementation() == 'PyPy':
+            # PyPy; use _slowmath.
+            PrintErr ("warning: this is PyPy; Not building "+
+                "Crypto.PublicKey._fastmath.")
+            self.__remove_extensions(["Crypto.PublicKey._fastmath"])
+        elif ac.get("HAVE_LIBGMP"):
             # Default; no changes needed
             pass
         elif ac.get("HAVE_LIBMPIR"):
